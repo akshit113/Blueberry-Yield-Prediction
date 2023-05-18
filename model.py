@@ -1,4 +1,5 @@
 from pandas import DataFrame, read_csv, set_option
+from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer, make_column_transformer
@@ -8,10 +9,10 @@ from sklearn.pipeline import Pipeline
 set_option('display.max_columns', None)
 
 
-def get_training_set(fname):
-    df = read_csv(fname)
+def get_training_set(fname,test_path):
+    train_df, test_df = read_csv(fname),read_csv(test_path)
     # print(train_df.head(30).to_string())
-    return df
+    return train_df, test_df
 
 
 def clean_data(df):
@@ -32,7 +33,10 @@ def normalize_data(df, onhe_cols, norm_cols):
 
 if __name__ == '__main__':
     train_path = 'dataset/train.csv'
-    train_df = get_training_set(train_path)
+    test_path = 'dataset/test.csv'
+    train_df,test_df = get_training_set(train_path,test_path)
+
+
     print(list(train_df.columns))
     cleaned_df = clean_data(train_df)
     scale = MinMaxScaler()
@@ -41,5 +45,9 @@ if __name__ == '__main__':
                  'fruitmass', 'seeds']
     onhe_cols = []
     normalized_df = normalize_data(df=cleaned_df, onhe_cols=onhe_cols,norm_cols=norm_cols)
+    x_train = normalized_df.iloc[:,[1,17]]
+    y_train = normalized_df.iloc[:,:-1]
+    x_train, x_test, y_train, y_test = train_test_split(x_train, y_train, test_size= 0.2, train_size=0.8)
+
 
     print("Program Execution Complete...")
