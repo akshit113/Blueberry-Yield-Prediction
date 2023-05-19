@@ -1,15 +1,25 @@
+"""
+
+Author: Akshit Agarwal
+Title: Blueberry Yield Prediction
+Link: https://www.kaggle.com/competitions/playground-series-s3e14/
+Description: This script preprocesses the input data, applies normalization of features and creates XGBRegressor model
+with k-fold cross validation method and calculates the MAE (Mean Absolute Error) and creates a submission file.
+"""
+
+
 from pandas import DataFrame, concat, read_csv, set_option
 import os
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import RepeatedKFold, cross_val_score, train_test_split
 from sklearn.preprocessing import MinMaxScaler, OneHotEncoder, StandardScaler
 from sklearn.impute import SimpleImputer
 from sklearn.compose import ColumnTransformer, make_column_transformer
 import numpy as np
 import statsmodels.api as sm
 from sklearn.pipeline import Pipeline
-from seaborn import lineplot, regplot
+from xgboost import XGBRegressor
 
 set_option('display.max_columns', None)
 
@@ -40,14 +50,26 @@ def normalize_data(train_df, test_df, norm_cols):
 
 
 def get_model(x_train, y_train):
+    """
     model = (sm.OLS(y_train.astype(float), x_train.astype(float))).fit()
     print(model.summary())
     print(model.params)
+    """
+
+    model = XGBRegressor(n_estimators=1000, max_depth=7, eta=0.1, subsample=0.7, colsample_bytree=0.8)
+    # define model evaluation method
+    cv = RepeatedKFold(n_splits=7, n_repeats=3, random_state=1)
+    # evaluate model
+    scores = cross_val_score(model, x_train, y_train, scoring='neg_mean_absolute_error', cv=cv, n_jobs=2,verbose=1)
+    print(scores)
+    scores = np.absolute(scores)
+    print('Mean MAE: %.3f (%.3f)' % (scores.mean(), scores.std()))
+    model.fit(x_train, y_train, verbose=1)
     return model
 
 
 def make_predictions(model, x_test, y_test=None):
-    preds = DataFrame(model.predict(x_test.astype(float)))
+    preds = DataFrame(model.predict(x_test))
     combined = []
     if y_test is not None:
         combined = concat([x_test, y_test, preds], axis=1, ignore_index=True)
@@ -78,6 +100,8 @@ if __name__ == '__main__':
     model = get_model(x_train, y_train)
 
     combined, preds = make_predictions(model, x_test, y_test)
+
+
     ls = DataFrame([float(val) for val in y_test])
     final_df = concat([ls, preds], axis=1)
     final_df.columns = ['true', 'predicted']
@@ -86,10 +110,6 @@ if __name__ == '__main__':
     mse = mean_squared_error(ls, preds)
     mae = mean_absolute_error(ls, preds)
 
-    regplot(x='true', y='predicted', data=final_df)
-    import matplotlib.pyplot as plt
-
-    plt.show()
 
     print(f'r2 score is {r2}')
     print(f'mse is {mse}')
