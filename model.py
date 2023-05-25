@@ -50,6 +50,7 @@ def normalize_data(train_df, test_df, norm_cols) :
     result_train_df = processed_train_df.iloc[:, [15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 17]]
     processed_test_df = DataFrame(transforming.fit_transform(test_df))
     result_test_df = processed_test_df.iloc[:, [15, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16]]
+    pickle.dump(transforming,open('scaling.pkl','wb'))
     return result_train_df, result_test_df
 
 
